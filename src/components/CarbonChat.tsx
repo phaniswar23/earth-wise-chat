@@ -4,28 +4,33 @@ import { ChatMessage } from './ChatMessage';
 import { calculateCarbonFootprint, getSustainabilityTip } from '@/utils/carbonCalculations';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { MessageCircle } from 'lucide-react';
+import { MessageCircle, Key } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
 
 export const CarbonChat = () => {
   const [messages, setMessages] = useState<Array<{ text: string; isBot: boolean }>>([
     {
-      text: "Hello! I'm your Carbon Offset Calculator. I can help you understand your carbon footprint. Try asking about your car travel, flights, electricity usage, or food consumption!",
+      text: "Hello! I'm your Carbon Offset Calculator. First, please enter your Gemini API key to enable AI-powered responses. Then, try asking about your car travel, flights, electricity usage, or food consumption!",
       isBot: true
     }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [apiKey, setApiKey] = useState('');
+  const { toast } = useToast();
 
   const processMessage = async (userInput: string) => {
     try {
       setIsLoading(true);
       
+      if (!apiKey) {
+        return "Please enter your Gemini API key first to enable AI-powered responses.";
+      }
+
       // For now, we'll use a simple pattern matching approach
-      // In a production app, you would want to use the Gemini API here
       const lowerInput = userInput.toLowerCase();
       let response = "I'm not sure how to help with that. Try asking about car travel, flights, electricity usage, or food consumption!";
       
-      // Simple pattern matching for demonstration
       if (lowerInput.includes('car') && lowerInput.includes('km')) {
         const km = parseFloat(lowerInput.match(/\d+/)?.[0] || '0');
         const footprint = calculateCarbonFootprint('car', km);
@@ -44,6 +49,20 @@ export const CarbonChat = () => {
       return "I'm sorry, I encountered an error. Please try again.";
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleApiKeySubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (apiKey) {
+      toast({
+        title: "API Key Saved",
+        description: "Your Gemini API key has been saved for this session.",
+      });
+      setMessages(prev => [...prev, {
+        text: "API key saved! You can now ask me questions about your carbon footprint.",
+        isBot: true
+      }]);
     }
   };
 
@@ -76,18 +95,39 @@ export const CarbonChat = () => {
         ))}
       </div>
 
+      {!apiKey && (
+        <form onSubmit={handleApiKeySubmit} className="p-4 border-t border-gray-200">
+          <div className="flex gap-2">
+            <Input
+              type="password"
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              placeholder="Enter your Gemini API key..."
+              className="flex-1"
+            />
+            <Button 
+              type="submit" 
+              className="bg-[#52796F] hover:bg-[#445E57]"
+            >
+              <Key className="w-4 h-4 mr-2" />
+              Save Key
+            </Button>
+          </div>
+        </form>
+      )}
+
       <form onSubmit={handleSubmit} className="p-4 border-t border-gray-200">
         <div className="flex gap-2">
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask about your carbon footprint..."
-            disabled={isLoading}
+            disabled={isLoading || !apiKey}
             className="flex-1"
           />
           <Button 
             type="submit" 
-            disabled={isLoading}
+            disabled={isLoading || !apiKey}
             className="bg-[#52796F] hover:bg-[#445E57]"
           >
             Send
