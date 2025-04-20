@@ -43,7 +43,7 @@ export const CarbonChat = () => {
 
       // For now, we'll use a simple pattern matching approach
       const lowerInput = userInput.toLowerCase();
-      let response = "I'm not sure how to help with that. Try asking about car travel, flights, electricity usage, or food consumption!";
+      let response = "I'm not sure how to help with that. Try asking about car travel, bike travel, flights, electricity usage, or food consumption!";
       
       if (lowerInput.includes('car') && lowerInput.includes('km')) {
         const km = parseFloat(lowerInput.match(/\d+/)?.[0] || '0');
@@ -55,6 +55,11 @@ export const CarbonChat = () => {
         const footprint = calculateCarbonFootprint('flight', km);
         const tip = getSustainabilityTip('flight');
         response = `Your ${km}km flight produces approximately ${footprint.toFixed(2)}kg of CO2. ${tip}`;
+      } else if (lowerInput.includes('bike') && lowerInput.includes('km')) {
+        const km = parseFloat(lowerInput.match(/\d+/)?.[0] || '0');
+        const footprint = calculateCarbonFootprint('bike', km);
+        const tip = getSustainabilityTip('bike');
+        response = `Your ${km}km bike journey produces ${footprint}kg of CO2 (zero direct emissions). ${tip}`;
       }
 
       return response;
