@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChatMessage } from './ChatMessage';
 import { calculateCarbonFootprint, getSustainabilityTip } from '@/utils/carbonCalculations';
 import { Button } from '@/components/ui/button';
@@ -17,13 +17,27 @@ export const CarbonChat = () => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [apiKey, setApiKey] = useState('');
+  const [keySubmitted, setKeySubmitted] = useState(false);
   const { toast } = useToast();
+
+  // Check localStorage for saved API key on component mount
+  useEffect(() => {
+    const savedApiKey = localStorage.getItem('geminiApiKey');
+    if (savedApiKey) {
+      setApiKey(savedApiKey);
+      setKeySubmitted(true);
+      toast({
+        title: "API Key Loaded",
+        description: "Your previously saved Gemini API key has been loaded.",
+      });
+    }
+  }, []);
 
   const processMessage = async (userInput: string) => {
     try {
       setIsLoading(true);
       
-      if (!apiKey) {
+      if (!apiKey || !keySubmitted) {
         return "Please enter your Gemini API key first to enable AI-powered responses.";
       }
 
@@ -54,15 +68,26 @@ export const CarbonChat = () => {
 
   const handleApiKeySubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (apiKey) {
+    if (apiKey.trim()) {
+      // Store API key in localStorage
+      localStorage.setItem('geminiApiKey', apiKey);
+      setKeySubmitted(true);
+      
       toast({
         title: "API Key Saved",
         description: "Your Gemini API key has been saved for this session.",
       });
+      
       setMessages(prev => [...prev, {
         text: "API key saved! You can now ask me questions about your carbon footprint.",
         isBot: true
       }]);
+    } else {
+      toast({
+        title: "Error",
+        description: "Please enter a valid API key.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -78,11 +103,33 @@ export const CarbonChat = () => {
     setMessages(prev => [...prev, { text: botResponse, isBot: true }]);
   };
 
+  const resetApiKey = () => {
+    localStorage.removeItem('geminiApiKey');
+    setApiKey('');
+    setKeySubmitted(false);
+    toast({
+      title: "API Key Removed",
+      description: "Your API key has been removed.",
+    });
+  };
+
   return (
     <div className="flex flex-col h-[80vh] max-w-2xl mx-auto bg-[#F2F7F4] rounded-lg shadow-lg">
-      <div className="flex items-center gap-2 p-4 bg-[#52796F] text-white rounded-t-lg">
-        <MessageCircle className="w-6 h-6" />
-        <h2 className="text-xl font-semibold">Carbon Offset Calculator</h2>
+      <div className="flex items-center justify-between p-4 bg-[#52796F] text-white rounded-t-lg">
+        <div className="flex items-center gap-2">
+          <MessageCircle className="w-6 h-6" />
+          <h2 className="text-xl font-semibold">Carbon Offset Calculator</h2>
+        </div>
+        {keySubmitted && (
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={resetApiKey} 
+            className="text-white hover:bg-[#445E57]"
+          >
+            Reset API Key
+          </Button>
+        )}
       </div>
       
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -95,7 +142,7 @@ export const CarbonChat = () => {
         ))}
       </div>
 
-      {!apiKey && (
+      {!keySubmitted && (
         <form onSubmit={handleApiKeySubmit} className="p-4 border-t border-gray-200">
           <div className="flex gap-2">
             <Input
@@ -122,12 +169,12 @@ export const CarbonChat = () => {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask about your carbon footprint..."
-            disabled={isLoading || !apiKey}
+            disabled={isLoading || !keySubmitted}
             className="flex-1"
           />
           <Button 
             type="submit" 
-            disabled={isLoading || !apiKey}
+            disabled={isLoading || !keySubmitted}
             className="bg-[#52796F] hover:bg-[#445E57]"
           >
             Send
