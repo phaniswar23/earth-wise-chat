@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { ChatMessage } from './ChatMessage';
 import {
@@ -13,8 +14,15 @@ import { useToast } from '@/components/ui/use-toast';
 
 const VEHICLE_TYPES = [
   'car', 'bus', 'train', 'motorcycle', 'truck',
-  'scooter', 'ferry', 'tram', 'subway', 'bike', 'flight'
+  'scooter', 'ferry', 'tram', 'subway', 'bike', 'flight',
+  // Additional vehicle types if needed in the future
 ];
+
+const FULL_COMBO_TRIPS_EXPLANATION =
+  "Combine trips: Instead of taking multiple separate flights, you plan your travel so you can visit multiple destinations or complete multiple tasks in one trip. This reduces the number of flights taken overall and thus lowers total carbon emissions.";
+
+const FULL_CARBON_OFFSET_EXPLANATION =
+  "Carbon offset programs: These are voluntary initiatives where you can invest money to support projects that reduce greenhouse gas emissions elsewhere (like planting trees, renewable energy, etc.). By contributing to such programs, you effectively compensate for the CO2 emitted by your flight.";
 
 export const CarbonChat = () => {
   const [messages, setMessages] = useState<Array<{ text: string; isBot: boolean }>>([
@@ -29,7 +37,6 @@ export const CarbonChat = () => {
   const [keySubmitted, setKeySubmitted] = useState(false);
   const { toast } = useToast();
 
-  // Check localStorage for saved API key on component mount
   useEffect(() => {
     const savedApiKey = localStorage.getItem('geminiApiKey');
     if (savedApiKey) {
@@ -51,75 +58,98 @@ export const CarbonChat = () => {
       }
 
       const lowerInput = userInput.toLowerCase();
-      let response = "I'm not sure how to help with that. Try asking about car travel, bike travel, flights, electricity usage, or food consumption!";
+      let response =
+        "I'm not sure how to help with that. Try asking about car travel, bike travel, flights, electricity usage, food consumption, or for explanations about combine trips or carbon offset programs!";
 
-      // Explanations for combine trips & carbon offset programs
+      // Explanations for combine trips & carbon offset programs (with provided text)
       if (/(explain|what is|tell me about).*(combine|combining) trips?/.test(lowerInput)) {
-        response = comboTripsExplanation;
-        return response;
+        return FULL_COMBO_TRIPS_EXPLANATION;
       }
       if (/(explain|what is|tell me about).*(carbon offset|offset program)/.test(lowerInput)) {
-        response = carbonOffsetExplanation;
-        return response;
+        return FULL_CARBON_OFFSET_EXPLANATION;
       }
 
-      // Greetings
-      if (/\b(hi|hello|hey|greetings)\b/.test(lowerInput)) {
-        response = "Hi, I am your Carbon Offset Calculator. Ask me about your carbon footprint!";
-        return response;
+      // Expanded greetings and personality questions
+      if (
+        /\b(hi|hello|hey|greetings|how are you|how r u|how do you do|whats up|what's up|who are you|what are you)\b/.test(
+          lowerInput
+        )
+      ) {
+        if (/\bhow are you|how r u|how do you do|whats up|what's up\b/.test(lowerInput)) {
+          return "Thanks for asking! I'm here to help you understand your carbon footprint. How can I assist you today?";
+        }
+        if (/\bwho are you|what are you\b/.test(lowerInput)) {
+          return "I'm an AI-powered Carbon Offset Calculator, here to help you reduce your carbon footprint!";
+        }
+        // Generic greeting
+        return "Hi there! Ask me about your carbon footprint or about sustainable travel choices.";
       }
 
-      // --- Handle multiple activities/trips in one message ---
-      // Match patterns like "car 50km", "bike for 43 km", etc, separated by "and"
-      // Regex explanation: finds a vehicle type, followed by some words, followed by number + "km"
+      // --- Handle multiple trips: match "car 50km" and "bike 40km" in same input ---
       const allTripMatches = [];
       const tripRegex = new RegExp(`(${VEHICLE_TYPES.join('|')})[^\\d]*(\\d+(?:\\.\\d+)?)\\s?km`, 'g');
       let matchTrip;
       while ((matchTrip = tripRegex.exec(lowerInput)) !== null) {
-        // matchTrip[1] is the type, matchTrip[2] is the value
         allTripMatches.push({ type: matchTrip[1], km: parseFloat(matchTrip[2]) });
       }
-
-      // Only process if two or more matches, or one match with an 'and'
       if (allTripMatches.length > 0) {
-        // Build a list of responses for each trip/activity
+        // All vehicle types handled
         const tripResponses = allTripMatches.map(({ type, km }) => {
           const footprint = calculateCarbonFootprint(type, km);
           const tip = getSustainabilityTip(type);
           if (type === 'bike') {
             return `Your ${km}km bike journey produces ${footprint}kg of CO2 (zero direct emissions). ${tip}`;
-          } else if (type === 'flight') {
-            return `Your ${km}km flight produces approximately ${footprint.toFixed(2)}kg of CO2. ${tip}`;
-          } else {
-            return `Your ${km}km ${type} trip produces approximately ${footprint.toFixed(2)}kg of CO2. ${tip}`;
           }
+          if (type === 'flight') {
+            return `Your ${km}km flight produces approximately ${footprint.toFixed(2)}kg of CO2. ${tip}`;
+          }
+          return `Your ${km}km ${type} trip produces approximately ${footprint.toFixed(2)}kg of CO2. ${tip}`;
         });
         return tripResponses.join('\n\n');
       }
 
-      // If specific, covered food or electricity
+      // Description for trip or vehicle not found, but single vehicle + distance pattern (even if misspelled)
+      const fallbackTripMatch =
+        lowerInput.match(new RegExp(`(${VEHICLE_TYPES.join('|')})`)) &&
+        lowerInput.match(/(\d+(\.\d+)?)\s?km/);
+
+      if (fallbackTripMatch) {
+        const type = lowerInput.match(new RegExp(`(${VEHICLE_TYPES.join('|')})`))[0];
+        const km = parseFloat(lowerInput.match(/(\d+(\.\d+)?)\s?km/)?.[1] || '0');
+        const footprint = calculateCarbonFootprint(type, km);
+        const tip = getSustainabilityTip(type);
+        if (type === 'bike') {
+          return `Your ${km}km bike journey produces ${footprint}kg of CO2 (zero direct emissions). ${tip}`;
+        }
+        if (type === 'flight') {
+          return `Your ${km}km flight produces approximately ${footprint.toFixed(2)}kg of CO2. ${tip}`;
+        }
+        return `Your ${km}km ${type} trip produces approximately ${footprint.toFixed(2)}kg of CO2. ${tip}`;
+      }
+
+      // Handle electricity in kWh
       if (lowerInput.includes("electricity") && lowerInput.match(/(\d+(\.\d+)?)\s?kwh/)) {
         const kwh = parseFloat(lowerInput.match(/(\d+(\.\d+)?)\s?kwh/)?.[1] || '0');
         const footprint = calculateCarbonFootprint('electricity', kwh);
         const tip = getSustainabilityTip('electricity');
-        response = `Your usage of ${kwh}kWh electricity produces about ${footprint.toFixed(2)}kg of CO2. ${tip}`;
-        return response;
+        return `Your usage of ${kwh}kWh electricity produces about ${footprint.toFixed(2)}kg of CO2. ${tip}`;
       }
+
+      // Handle food input
       if (lowerInput.includes("meat") && lowerInput.match(/(\d+(\.\d+)?)\s?kg/)) {
         const kg = parseFloat(lowerInput.match(/(\d+(\.\d+)?)\s?kg/)?.[1] || '0');
         const footprint = calculateCarbonFootprint('meat', kg);
         const tip = getSustainabilityTip('meat');
-        response = `Consuming ${kg}kg of meat generates about ${footprint.toFixed(2)}kg of CO2. ${tip}`;
-        return response;
+        return `Consuming ${kg}kg of meat generates about ${footprint.toFixed(2)}kg of CO2. ${tip}`;
       }
       if (lowerInput.includes("vegetable") && lowerInput.match(/(\d+(\.\d+)?)\s?kg/)) {
         const kg = parseFloat(lowerInput.match(/(\d+(\.\d+)?)\s?kg/)?.[1] || '0');
         const footprint = calculateCarbonFootprint('vegetables', kg);
         const tip = getSustainabilityTip('vegetables');
-        response = `Consuming ${kg}kg of vegetables generates about ${footprint.toFixed(2)}kg of CO2. ${tip}`;
-        return response;
+        return `Consuming ${kg}kg of vegetables generates about ${footprint.toFixed(2)}kg of CO2. ${tip}`;
       }
 
+      // If all fails, just respond with a helpful nudge
       return response;
     } catch (error) {
       console.error('Error processing message:', error);
@@ -132,19 +162,19 @@ export const CarbonChat = () => {
   const handleApiKeySubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (apiKey.trim()) {
-      // Store API key in localStorage
       localStorage.setItem('geminiApiKey', apiKey);
       setKeySubmitted(true);
-      
       toast({
         title: "API Key Saved",
         description: "Your Gemini API key has been saved for this session.",
       });
-      
-      setMessages(prev => [...prev, {
-        text: "API key saved! You can now ask me questions about your carbon footprint.",
-        isBot: true
-      }]);
+      setMessages(prev => [
+        ...prev,
+        {
+          text: "API key saved! You can now ask me questions about your carbon footprint.",
+          isBot: true
+        }
+      ]);
     } else {
       toast({
         title: "Error",
@@ -184,24 +214,20 @@ export const CarbonChat = () => {
           <h2 className="text-xl font-semibold">Carbon Offset Calculator</h2>
         </div>
         {keySubmitted && (
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={resetApiKey} 
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={resetApiKey}
             className="text-white hover:bg-[#445E57]"
           >
             Reset API Key
           </Button>
         )}
       </div>
-      
+
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((message, index) => (
-          <ChatMessage
-            key={index}
-            message={message.text}
-            isBot={message.isBot}
-          />
+          <ChatMessage key={index} message={message.text} isBot={message.isBot} />
         ))}
       </div>
 
@@ -215,10 +241,7 @@ export const CarbonChat = () => {
               placeholder="Enter your Gemini API key..."
               className="flex-1"
             />
-            <Button 
-              type="submit" 
-              className="bg-[#52796F] hover:bg-[#445E57]"
-            >
+            <Button type="submit" className="bg-[#52796F] hover:bg-[#445E57]">
               <Key className="w-4 h-4 mr-2" />
               Save Key
             </Button>
@@ -235,8 +258,8 @@ export const CarbonChat = () => {
             disabled={isLoading || !keySubmitted}
             className="flex-1"
           />
-          <Button 
-            type="submit" 
+          <Button
+            type="submit"
             disabled={isLoading || !keySubmitted}
             className="bg-[#52796F] hover:bg-[#445E57]"
           >
