@@ -1,11 +1,21 @@
 
 import React, { useState, useEffect } from 'react';
 import { ChatMessage } from './ChatMessage';
-import { calculateCarbonFootprint, getSustainabilityTip } from '@/utils/carbonCalculations';
+import {
+  calculateCarbonFootprint,
+  getSustainabilityTip,
+  comboTripsExplanation,
+  carbonOffsetExplanation
+} from '@/utils/carbonCalculations';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { MessageCircle, Key } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+
+const VEHICLE_TYPES = [
+  'car', 'bus', 'train', 'motorcycle', 'truck',
+  'scooter', 'ferry', 'tram', 'subway', 'bike', 'flight'
+];
 
 export const CarbonChat = () => {
   const [messages, setMessages] = useState<Array<{ text: string; isBot: boolean }>>([
@@ -36,7 +46,7 @@ export const CarbonChat = () => {
   const processMessage = async (userInput: string) => {
     try {
       setIsLoading(true);
-      
+
       if (!apiKey || !keySubmitted) {
         return "Please enter your Gemini API key first to enable AI-powered responses.";
       }
@@ -44,24 +54,61 @@ export const CarbonChat = () => {
       const lowerInput = userInput.toLowerCase();
       let response = "I'm not sure how to help with that. Try asking about car travel, bike travel, flights, electricity usage, or food consumption!";
 
+      // Handle explanations for combining trips
+      if (/(explain|what is|tell me about).*(combine|combining) trips?/.test(lowerInput)) {
+        response = comboTripsExplanation;
+        return response;
+      }
+      if (/(explain|what is|tell me about).*(carbon offset|offset program)/.test(lowerInput)) {
+        response = carbonOffsetExplanation;
+        return response;
+      }
+
       // Handle greetings like "hi", "hello", "hey"
       if (/\b(hi|hello|hey|greetings)\b/.test(lowerInput)) {
         response = "Hi, I am your Carbon Offset Calculator. Ask me about your carbon footprint!";
-      } else if (lowerInput.includes('car') && lowerInput.includes('km')) {
-        const km = parseFloat(lowerInput.match(/\d+/)?.[0] || '0');
-        const footprint = calculateCarbonFootprint('car', km);
-        const tip = getSustainabilityTip('car');
-        response = `Your ${km}km car journey produces approximately ${footprint.toFixed(2)}kg of CO2. ${tip}`;
-      } else if (lowerInput.includes('flight') && lowerInput.includes('km')) {
-        const km = parseFloat(lowerInput.match(/\d+/)?.[0] || '0');
-        const footprint = calculateCarbonFootprint('flight', km);
-        const tip = getSustainabilityTip('flight');
-        response = `Your ${km}km flight produces approximately ${footprint.toFixed(2)}kg of CO2. ${tip}`;
-      } else if (lowerInput.includes('bike') && lowerInput.includes('km')) {
-        const km = parseFloat(lowerInput.match(/\d+/)?.[0] || '0');
-        const footprint = calculateCarbonFootprint('bike', km);
-        const tip = getSustainabilityTip('bike');
-        response = `Your ${km}km bike journey produces ${footprint}kg of CO2 (zero direct emissions). ${tip}`;
+        return response;
+      }
+
+      // Try to extract a vehicle type and distance (km) from input
+      const kmMatch = lowerInput.match(/(\d+(\.\d+)?)\s?km/);
+      const km = kmMatch ? parseFloat(kmMatch[1]) : undefined;
+      const foundVehicle = VEHICLE_TYPES.find(type => lowerInput.includes(type));
+
+      if (foundVehicle && km !== undefined) {
+        const footprint = calculateCarbonFootprint(foundVehicle, km);
+        const tip = getSustainabilityTip(foundVehicle);
+        if (foundVehicle === 'bike') {
+          response = `Your ${km}km bike journey produces ${footprint}kg of CO2 (zero direct emissions). ${tip}`;
+        } else if (foundVehicle === 'flight') {
+          response = `Your ${km}km flight produces approximately ${footprint.toFixed(2)}kg of CO2. ${tip}`;
+        } else {
+          response = `Your ${km}km ${foundVehicle} trip produces approximately ${footprint.toFixed(2)}kg of CO2. ${tip}`;
+        }
+        return response;
+      }
+
+      // If specific, covered food or electricity
+      if (lowerInput.includes("electricity") && lowerInput.match(/(\d+(\.\d+)?)\s?kwh/)) {
+        const kwh = parseFloat(lowerInput.match(/(\d+(\.\d+)?)\s?kwh/)?.[1] || '0');
+        const footprint = calculateCarbonFootprint('electricity', kwh);
+        const tip = getSustainabilityTip('electricity');
+        response = `Your usage of ${kwh}kWh electricity produces about ${footprint.toFixed(2)}kg of CO2. ${tip}`;
+        return response;
+      }
+      if (lowerInput.includes("meat") && lowerInput.match(/(\d+(\.\d+)?)\s?kg/)) {
+        const kg = parseFloat(lowerInput.match(/(\d+(\.\d+)?)\s?kg/)?.[1] || '0');
+        const footprint = calculateCarbonFootprint('meat', kg);
+        const tip = getSustainabilityTip('meat');
+        response = `Consuming ${kg}kg of meat generates about ${footprint.toFixed(2)}kg of CO2. ${tip}`;
+        return response;
+      }
+      if (lowerInput.includes("vegetable") && lowerInput.match(/(\d+(\.\d+)?)\s?kg/)) {
+        const kg = parseFloat(lowerInput.match(/(\d+(\.\d+)?)\s?kg/)?.[1] || '0');
+        const footprint = calculateCarbonFootprint('vegetables', kg);
+        const tip = getSustainabilityTip('vegetables');
+        response = `Consuming ${kg}kg of vegetables generates about ${footprint.toFixed(2)}kg of CO2. ${tip}`;
+        return response;
       }
 
       return response;
