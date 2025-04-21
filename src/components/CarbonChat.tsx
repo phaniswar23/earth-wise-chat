@@ -41,11 +41,13 @@ export const CarbonChat = () => {
         return "Please enter your Gemini API key first to enable AI-powered responses.";
       }
 
-      // For now, we'll use a simple pattern matching approach
       const lowerInput = userInput.toLowerCase();
       let response = "I'm not sure how to help with that. Try asking about car travel, bike travel, flights, electricity usage, or food consumption!";
-      
-      if (lowerInput.includes('car') && lowerInput.includes('km')) {
+
+      // Handle greetings like "hi", "hello", "hey"
+      if (/\b(hi|hello|hey|greetings)\b/.test(lowerInput)) {
+        response = "Hi, I am your Carbon Offset Calculator. Ask me about your carbon footprint!";
+      } else if (lowerInput.includes('car') && lowerInput.includes('km')) {
         const km = parseFloat(lowerInput.match(/\d+/)?.[0] || '0');
         const footprint = calculateCarbonFootprint('car', km);
         const tip = getSustainabilityTip('car');
