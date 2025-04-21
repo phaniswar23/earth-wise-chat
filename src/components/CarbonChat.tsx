@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { ChatMessage } from './ChatMessage';
 import {
@@ -54,7 +53,7 @@ export const CarbonChat = () => {
       const lowerInput = userInput.toLowerCase();
       let response = "I'm not sure how to help with that. Try asking about car travel, bike travel, flights, electricity usage, or food consumption!";
 
-      // Handle explanations for combining trips
+      // Explanations for combine trips & carbon offset programs
       if (/(explain|what is|tell me about).*(combine|combining) trips?/.test(lowerInput)) {
         response = comboTripsExplanation;
         return response;
@@ -64,28 +63,38 @@ export const CarbonChat = () => {
         return response;
       }
 
-      // Handle greetings like "hi", "hello", "hey"
+      // Greetings
       if (/\b(hi|hello|hey|greetings)\b/.test(lowerInput)) {
         response = "Hi, I am your Carbon Offset Calculator. Ask me about your carbon footprint!";
         return response;
       }
 
-      // Try to extract a vehicle type and distance (km) from input
-      const kmMatch = lowerInput.match(/(\d+(\.\d+)?)\s?km/);
-      const km = kmMatch ? parseFloat(kmMatch[1]) : undefined;
-      const foundVehicle = VEHICLE_TYPES.find(type => lowerInput.includes(type));
+      // --- Handle multiple activities/trips in one message ---
+      // Match patterns like "car 50km", "bike for 43 km", etc, separated by "and"
+      // Regex explanation: finds a vehicle type, followed by some words, followed by number + "km"
+      const allTripMatches = [];
+      const tripRegex = new RegExp(`(${VEHICLE_TYPES.join('|')})[^\\d]*(\\d+(?:\\.\\d+)?)\\s?km`, 'g');
+      let matchTrip;
+      while ((matchTrip = tripRegex.exec(lowerInput)) !== null) {
+        // matchTrip[1] is the type, matchTrip[2] is the value
+        allTripMatches.push({ type: matchTrip[1], km: parseFloat(matchTrip[2]) });
+      }
 
-      if (foundVehicle && km !== undefined) {
-        const footprint = calculateCarbonFootprint(foundVehicle, km);
-        const tip = getSustainabilityTip(foundVehicle);
-        if (foundVehicle === 'bike') {
-          response = `Your ${km}km bike journey produces ${footprint}kg of CO2 (zero direct emissions). ${tip}`;
-        } else if (foundVehicle === 'flight') {
-          response = `Your ${km}km flight produces approximately ${footprint.toFixed(2)}kg of CO2. ${tip}`;
-        } else {
-          response = `Your ${km}km ${foundVehicle} trip produces approximately ${footprint.toFixed(2)}kg of CO2. ${tip}`;
-        }
-        return response;
+      // Only process if two or more matches, or one match with an 'and'
+      if (allTripMatches.length > 0) {
+        // Build a list of responses for each trip/activity
+        const tripResponses = allTripMatches.map(({ type, km }) => {
+          const footprint = calculateCarbonFootprint(type, km);
+          const tip = getSustainabilityTip(type);
+          if (type === 'bike') {
+            return `Your ${km}km bike journey produces ${footprint}kg of CO2 (zero direct emissions). ${tip}`;
+          } else if (type === 'flight') {
+            return `Your ${km}km flight produces approximately ${footprint.toFixed(2)}kg of CO2. ${tip}`;
+          } else {
+            return `Your ${km}km ${type} trip produces approximately ${footprint.toFixed(2)}kg of CO2. ${tip}`;
+          }
+        });
+        return tripResponses.join('\n\n');
       }
 
       // If specific, covered food or electricity
