@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { ChatMessage } from './ChatMessage';
 import {
@@ -61,12 +60,14 @@ export const CarbonChat = () => {
       let response =
         "I'm not sure how to help with that. Try asking about car travel, bike travel, flights, electricity usage, food consumption, or for explanations about combine trips or carbon offset programs!";
 
-      // Explanations for combine trips & carbon offset programs (with provided text)
+      // Carbon Offset programs: direct responses to any mention of the phrase
+      if (lowerInput.includes("carbon offset program") || lowerInput.includes("carbon offset programs")) {
+        return FULL_CARBON_OFFSET_EXPLANATION;
+      }
+
+      // Explanations for combine trips (with provided text)
       if (/(explain|what is|tell me about).*(combine|combining) trips?/.test(lowerInput)) {
         return FULL_COMBO_TRIPS_EXPLANATION;
-      }
-      if (/(explain|what is|tell me about).*(carbon offset|offset program)/.test(lowerInput)) {
-        return FULL_CARBON_OFFSET_EXPLANATION;
       }
 
       // Expanded greetings and personality questions
