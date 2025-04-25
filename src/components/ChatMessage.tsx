@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
 
 interface ChatMessageProps {
   message: string;
@@ -9,22 +10,26 @@ interface ChatMessageProps {
 
 export const ChatMessage = ({ message, isBot }: ChatMessageProps) => {
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
       className={cn(
         "mb-4 flex w-full",
         isBot ? "justify-start" : "justify-end"
       )}
     >
-      <div
+      <motion.div
+        whileHover={{ scale: 1.02 }}
         className={cn(
-          "rounded-lg px-4 py-2 max-w-[80%]",
+          "rounded-2xl px-6 py-3 max-w-[80%] shadow-lg backdrop-blur-sm",
           isBot
-            ? "bg-[#84A98C] text-white"
-            : "bg-[#52796F] text-white"
+            ? "bg-gradient-to-r from-[#84A98C] to-[#76997E] text-white"
+            : "bg-gradient-to-r from-[#52796F] to-[#446158] text-white"
         )}
       >
         {message}
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 };

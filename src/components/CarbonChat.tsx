@@ -8,13 +8,13 @@ import {
 } from '@/utils/carbonCalculations';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { MessageCircle, Key } from 'lucide-react';
+import { MessageCircle, Key, Send } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import { motion } from "framer-motion";
 
 const VEHICLE_TYPES = [
   'car', 'bus', 'train', 'motorcycle', 'truck',
   'scooter', 'ferry', 'tram', 'subway', 'bike', 'flight',
-  // Additional vehicle types if needed in the future
 ];
 
 const FULL_COMBO_TRIPS_EXPLANATION =
@@ -60,17 +60,14 @@ export const CarbonChat = () => {
       let response =
         "I'm not sure how to help with that. Try asking about car travel, bike travel, flights, electricity usage, food consumption, or for explanations about combine trips or carbon offset programs!";
 
-      // Carbon Offset programs: direct responses to any mention of the phrase
       if (lowerInput.includes("carbon offset program") || lowerInput.includes("carbon offset programs")) {
         return FULL_CARBON_OFFSET_EXPLANATION;
       }
 
-      // Explanations for combine trips (with provided text)
       if (/(explain|what is|tell me about).*(combine|combining) trips?/.test(lowerInput)) {
         return FULL_COMBO_TRIPS_EXPLANATION;
       }
 
-      // Expanded greetings and personality questions
       if (
         /\b(hi|hello|hey|greetings|how are you|how r u|how do you do|whats up|what's up|who are you|what are you)\b/.test(
           lowerInput
@@ -82,11 +79,9 @@ export const CarbonChat = () => {
         if (/\bwho are you|what are you\b/.test(lowerInput)) {
           return "I'm an AI-powered Carbon Offset Calculator, here to help you reduce your carbon footprint!";
         }
-        // Generic greeting
         return "Hi there! Ask me about your carbon footprint or about sustainable travel choices.";
       }
 
-      // --- Handle multiple trips: match "car 50km" and "bike 40km" in same input ---
       const allTripMatches = [];
       const tripRegex = new RegExp(`(${VEHICLE_TYPES.join('|')})[^\\d]*(\\d+(?:\\.\\d+)?)\\s?km`, 'g');
       let matchTrip;
@@ -94,7 +89,6 @@ export const CarbonChat = () => {
         allTripMatches.push({ type: matchTrip[1], km: parseFloat(matchTrip[2]) });
       }
       if (allTripMatches.length > 0) {
-        // All vehicle types handled
         const tripResponses = allTripMatches.map(({ type, km }) => {
           const footprint = calculateCarbonFootprint(type, km);
           const tip = getSustainabilityTip(type);
@@ -109,7 +103,6 @@ export const CarbonChat = () => {
         return tripResponses.join('\n\n');
       }
 
-      // Description for trip or vehicle not found, but single vehicle + distance pattern (even if misspelled)
       const fallbackTripMatch =
         lowerInput.match(new RegExp(`(${VEHICLE_TYPES.join('|')})`)) &&
         lowerInput.match(/(\d+(\.\d+)?)\s?km/);
@@ -128,7 +121,6 @@ export const CarbonChat = () => {
         return `Your ${km}km ${type} trip produces approximately ${footprint.toFixed(2)}kg of CO2. ${tip}`;
       }
 
-      // Handle electricity in kWh
       if (lowerInput.includes("electricity") && lowerInput.match(/(\d+(\.\d+)?)\s?kwh/)) {
         const kwh = parseFloat(lowerInput.match(/(\d+(\.\d+)?)\s?kwh/)?.[1] || '0');
         const footprint = calculateCarbonFootprint('electricity', kwh);
@@ -136,7 +128,6 @@ export const CarbonChat = () => {
         return `Your usage of ${kwh}kWh electricity produces about ${footprint.toFixed(2)}kg of CO2. ${tip}`;
       }
 
-      // Handle food input
       if (lowerInput.includes("meat") && lowerInput.match(/(\d+(\.\d+)?)\s?kg/)) {
         const kg = parseFloat(lowerInput.match(/(\d+(\.\d+)?)\s?kg/)?.[1] || '0');
         const footprint = calculateCarbonFootprint('meat', kg);
@@ -150,7 +141,6 @@ export const CarbonChat = () => {
         return `Consuming ${kg}kg of vegetables generates about ${footprint.toFixed(2)}kg of CO2. ${tip}`;
       }
 
-      // If all fails, just respond with a helpful nudge
       return response;
     } catch (error) {
       console.error('Error processing message:', error);
@@ -208,9 +198,14 @@ export const CarbonChat = () => {
   };
 
   return (
-    <div className="flex flex-col h-[80vh] max-w-2xl mx-auto bg-[#F2F7F4] rounded-lg shadow-lg">
-      <div className="flex items-center justify-between p-4 bg-[#52796F] text-white rounded-t-lg">
-        <div className="flex items-center gap-2">
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="flex flex-col h-[80vh] max-w-2xl mx-auto bg-gradient-to-b from-[#F2F7F4] to-[#E8F0EB] rounded-2xl shadow-2xl border border-[#CAD2CE]/20"
+    >
+      <div className="flex items-center justify-between p-6 bg-gradient-to-r from-[#52796F] to-[#446158] text-white rounded-t-2xl">
+        <div className="flex items-center gap-3">
           <MessageCircle className="w-6 h-6" />
           <h2 className="text-xl font-semibold">Carbon Offset Calculator</h2>
         </div>
@@ -219,55 +214,67 @@ export const CarbonChat = () => {
             variant="ghost"
             size="sm"
             onClick={resetApiKey}
-            className="text-white hover:bg-[#445E57]"
+            className="text-white hover:bg-[#445E57]/20"
           >
             Reset API Key
           </Button>
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-6 space-y-4 scrollbar-thin scrollbar-thumb-[#52796F]/20 scrollbar-track-transparent">
         {messages.map((message, index) => (
           <ChatMessage key={index} message={message.text} isBot={message.isBot} />
         ))}
       </div>
 
-      {!keySubmitted && (
-        <form onSubmit={handleApiKeySubmit} className="p-4 border-t border-gray-200">
+      {!keySubmitted ? (
+        <motion.form
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2 }}
+          onSubmit={handleApiKeySubmit}
+          className="p-6 border-t border-[#CAD2CE]/20 bg-white/50 backdrop-blur-sm rounded-b-2xl"
+        >
           <div className="flex gap-2">
             <Input
               type="password"
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
               placeholder="Enter your Gemini API key..."
-              className="flex-1"
+              className="flex-1 border-[#CAD2CE]/40 focus:border-[#52796F]"
             />
-            <Button type="submit" className="bg-[#52796F] hover:bg-[#445E57]">
+            <Button type="submit" className="bg-[#52796F] hover:bg-[#446158] transition-colors">
               <Key className="w-4 h-4 mr-2" />
               Save Key
             </Button>
           </div>
-        </form>
+        </motion.form>
+      ) : (
+        <motion.form
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2 }}
+          onSubmit={handleSubmit}
+          className="p-6 border-t border-[#CAD2CE]/20 bg-white/50 backdrop-blur-sm rounded-b-2xl"
+        >
+          <div className="flex gap-2">
+            <Input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Ask about your carbon footprint..."
+              disabled={isLoading || !keySubmitted}
+              className="flex-1 border-[#CAD2CE]/40 focus:border-[#52796F]"
+            />
+            <Button
+              type="submit"
+              disabled={isLoading || !keySubmitted}
+              className="bg-[#52796F] hover:bg-[#446158] transition-colors"
+            >
+              <Send className="w-4 h-4" />
+            </Button>
+          </div>
+        </motion.form>
       )}
-
-      <form onSubmit={handleSubmit} className="p-4 border-t border-gray-200">
-        <div className="flex gap-2">
-          <Input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask about your carbon footprint..."
-            disabled={isLoading || !keySubmitted}
-            className="flex-1"
-          />
-          <Button
-            type="submit"
-            disabled={isLoading || !keySubmitted}
-            className="bg-[#52796F] hover:bg-[#445E57]"
-          >
-            Send
-          </Button>
-        </div>
-      </form>
-    </div>
+    </motion.div>
   );
 };
