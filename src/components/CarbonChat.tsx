@@ -9,8 +9,9 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { MessageCircle, Key, Send } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { motion } from "framer-motion";
+import { ChatMessage as ChatMessageType } from '@/types/chat';
 
 const VEHICLE_TYPES = [
   'car', 'bus', 'train', 'motorcycle', 'truck',
@@ -24,7 +25,7 @@ const FULL_CARBON_OFFSET_EXPLANATION =
   "Carbon offset programs: These are voluntary initiatives where you can invest money to support projects that reduce greenhouse gas emissions elsewhere (like planting trees, renewable energy, etc.). By contributing to such programs, you effectively compensate for the CO2 emitted by your flight.";
 
 export const CarbonChat = () => {
-  const [messages, setMessages] = useState<Array<{ text: string; isBot: boolean }>>([
+  const [messages, setMessages] = useState<ChatMessageType[]>([
     {
       text: "Hello! I'm your Carbon Offset Calculator. First, please enter your Gemini API key to enable AI-powered responses. Then, try asking about your car travel, flights, electricity usage, or food consumption!",
       isBot: true
@@ -55,6 +56,11 @@ export const CarbonChat = () => {
     "Carbon impact of a 1000km flight",
     "How much CO2 does 100kWh of electricity produce?"
   ];
+
+  const handleSuggestionClick = (suggestion: string) => {
+    setInput(suggestion);
+    handleSubmit({ preventDefault: () => {} } as React.FormEvent);
+  };
 
   const processMessage = async (userInput: string) => {
     try {
@@ -149,13 +155,14 @@ export const CarbonChat = () => {
         return `Consuming ${kg}kg of vegetables generates about ${footprint.toFixed(2)}kg of CO2. ${tip}`;
       }
 
-      // If no specific pattern was matched, return the default response
+      // If no specific pattern was matched, return the default response with suggestions
       if (response.startsWith("I'm not sure")) {
         setMessages(prev => [
-          ...prev,
+          ...prev, 
+          { text: userInput, isBot: false },
           { text: response, isBot: true, suggestions: getSuggestions() }
         ]);
-        return;
+        return null;
       }
 
       return response;
@@ -180,7 +187,8 @@ export const CarbonChat = () => {
         ...prev,
         {
           text: "API key saved! You can now ask me questions about your carbon footprint.",
-          isBot: true
+          isBot: true,
+          suggestions: getSuggestions()
         }
       ]);
     } else {
@@ -197,11 +205,13 @@ export const CarbonChat = () => {
     if (!input.trim()) return;
 
     const userMessage = input.trim();
-    setMessages(prev => [...prev, { text: userMessage, isBot: false }]);
     setInput('');
-
+    
+    setMessages(prev => [...prev, { text: userMessage, isBot: false }]);
+    
     const botResponse = await processMessage(userMessage);
-    if (botResponse) {
+    
+    if (botResponse !== null) {
       setMessages(prev => [...prev, { text: botResponse, isBot: true }]);
     }
   };
@@ -242,7 +252,13 @@ export const CarbonChat = () => {
 
       <div className="flex-1 overflow-y-auto p-6 space-y-4 scrollbar-thin scrollbar-thumb-[#52796F]/20 scrollbar-track-transparent">
         {messages.map((message, index) => (
-          <ChatMessage key={index} message={message.text} isBot={message.isBot} />
+          <ChatMessage 
+            key={index} 
+            message={message.text} 
+            isBot={message.isBot} 
+            suggestions={message.suggestions} 
+            onSuggestionClick={handleSuggestionClick}
+          />
         ))}
       </div>
 

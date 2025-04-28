@@ -2,15 +2,16 @@
 import React from 'react';
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
-import { Car, Bike, Train, Bus, FlightIcon } from "lucide-react";
+import { Car, Bike, Train, Bus, Plane } from "lucide-react";
 
 interface ChatMessageProps {
   message: string;
   isBot: boolean;
   suggestions?: string[];
+  onSuggestionClick?: (suggestion: string) => void;
 }
 
-export const ChatMessage = ({ message, isBot, suggestions }: ChatMessageProps) => {
+export const ChatMessage = ({ message, isBot, suggestions, onSuggestionClick }: ChatMessageProps) => {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -45,6 +46,8 @@ export const ChatMessage = ({ message, isBot, suggestions }: ChatMessageProps) =
               <motion.div
                 key={index}
                 whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => onSuggestionClick && onSuggestionClick(suggestion)}
                 className="bg-white/90 text-[#52796F] px-4 py-2 rounded-xl text-sm shadow-md cursor-pointer hover:bg-white transition-colors duration-200"
               >
                 {suggestion}
