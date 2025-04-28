@@ -24,6 +24,21 @@ const FULL_COMBO_TRIPS_EXPLANATION =
 const FULL_CARBON_OFFSET_EXPLANATION =
   "Carbon offset programs: These are voluntary initiatives where you can invest money to support projects that reduce greenhouse gas emissions elsewhere (like planting trees, renewable energy, etc.). By contributing to such programs, you effectively compensate for the CO2 emitted by your flight.";
 
+const CARBON_NEUTRAL_EXPLANATION = 
+  "Carbon neutrality means achieving net-zero carbon dioxide emissions by balancing CO2 emissions with carbon removal or offsetting. Here are key ways to become carbon neutral:\n\n" +
+  "1. Reduce emissions: Use public transport, energy-efficient appliances, and renewable energy\n" +
+  "2. Offset remaining emissions: Invest in projects like tree planting or renewable energy\n" +
+  "3. Choose eco-friendly options: Select products with lower carbon footprints\n" +
+  "4. Track your impact: Regularly calculate and monitor your carbon emissions";
+
+const SUSTAINABLE_PRACTICES_EXPLANATION =
+  "Here are effective sustainable practices to reduce your carbon footprint:\n\n" +
+  "1. Use public transportation or bike when possible\n" +
+  "2. Choose energy-efficient appliances and LED lighting\n" +
+  "3. Reduce meat consumption and eat more plant-based meals\n" +
+  "4. Support local producers to reduce transportation emissions\n" +
+  "5. Minimize single-use plastics and recycle properly";
+
 export const CarbonChat = () => {
   const [messages, setMessages] = useState<ChatMessageType[]>([
     {
@@ -52,9 +67,9 @@ export const CarbonChat = () => {
   const getSuggestions = () => [
     "How much carbon does a car produce traveling 50km?",
     "What's the carbon footprint of a 200km train journey?",
-    "Calculate emissions for a 5km bike ride",
-    "Carbon impact of a 1000km flight",
-    "How much CO2 does 100kWh of electricity produce?"
+    "Tell me about carbon neutrality",
+    "What are sustainable practices?",
+    "Carbon impact of a 1000km flight"
   ];
 
   const handleSuggestionClick = (suggestion: string) => {
@@ -73,6 +88,14 @@ export const CarbonChat = () => {
       const lowerInput = userInput.toLowerCase();
       let response = 
         "I'm not sure how to help with that. Here are some examples you can try asking about:";
+
+      if (lowerInput.includes("carbon neutral") || lowerInput.includes("carbon neutrality")) {
+        return CARBON_NEUTRAL_EXPLANATION;
+      }
+
+      if (lowerInput.includes("sustainable practices") || lowerInput.includes("how to be sustainable")) {
+        return SUSTAINABLE_PRACTICES_EXPLANATION;
+      }
 
       if (lowerInput.includes("carbon offset program") || lowerInput.includes("carbon offset programs")) {
         return FULL_CARBON_OFFSET_EXPLANATION;
