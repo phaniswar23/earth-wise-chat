@@ -48,6 +48,14 @@ export const CarbonChat = () => {
     }
   }, []);
 
+  const getSuggestions = () => [
+    "How much carbon does a car produce traveling 50km?",
+    "What's the carbon footprint of a 200km train journey?",
+    "Calculate emissions for a 5km bike ride",
+    "Carbon impact of a 1000km flight",
+    "How much CO2 does 100kWh of electricity produce?"
+  ];
+
   const processMessage = async (userInput: string) => {
     try {
       setIsLoading(true);
@@ -57,8 +65,8 @@ export const CarbonChat = () => {
       }
 
       const lowerInput = userInput.toLowerCase();
-      let response =
-        "I'm not sure how to help with that. Try asking about car travel, bike travel, flights, electricity usage, food consumption, or for explanations about combine trips or carbon offset programs!";
+      let response = 
+        "I'm not sure how to help with that. Here are some examples you can try asking about:";
 
       if (lowerInput.includes("carbon offset program") || lowerInput.includes("carbon offset programs")) {
         return FULL_CARBON_OFFSET_EXPLANATION;
@@ -141,6 +149,15 @@ export const CarbonChat = () => {
         return `Consuming ${kg}kg of vegetables generates about ${footprint.toFixed(2)}kg of CO2. ${tip}`;
       }
 
+      // If no specific pattern was matched, return the default response
+      if (response.startsWith("I'm not sure")) {
+        setMessages(prev => [
+          ...prev,
+          { text: response, isBot: true, suggestions: getSuggestions() }
+        ]);
+        return;
+      }
+
       return response;
     } catch (error) {
       console.error('Error processing message:', error);
@@ -184,7 +201,9 @@ export const CarbonChat = () => {
     setInput('');
 
     const botResponse = await processMessage(userMessage);
-    setMessages(prev => [...prev, { text: botResponse, isBot: true }]);
+    if (botResponse) {
+      setMessages(prev => [...prev, { text: botResponse, isBot: true }]);
+    }
   };
 
   const resetApiKey = () => {
